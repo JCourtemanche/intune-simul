@@ -1,0 +1,1218 @@
+contentitemexportablefields:
+  contentitemfields: {}
+description: 'Exposure Management -> Intune: remédie une vulnérabilité de poste utilisateur (Windows, macOS, iOS) en ajoutant le poste au groupe Intune ciblé par la stratégie de mise à jour, après approbation, puis vérifie l''installation du correctif et clôture l''issue. Fonctionne avec l''intégration Intune (Demo) ou l''intégration officielle Microsoft Graph API.'
+id: EM - Intune Patch Remediation
+inputs:
+- key: WindowsRemediationGroup
+  value:
+    simple: XSIAM-Remediation-Windows-Expedite
+  required: false
+  description: Groupe Entra ID ciblé par le profil Intune de mise à jour Windows accélérée (expedite).
+  playbookInputQuery: null
+- key: MacOSRemediationGroup
+  value:
+    simple: XSIAM-Remediation-macOS-Update
+  required: false
+  description: Groupe Entra ID ciblé par la stratégie de mise à jour macOS.
+  playbookInputQuery: null
+- key: IOSRemediationGroup
+  value:
+    simple: XSIAM-Remediation-iOS-Update
+  required: false
+  description: Groupe Entra ID ciblé par la stratégie de mise à jour iOS.
+  playbookInputQuery: null
+- key: PatchTimeoutSeconds
+  value:
+    simple: '600'
+  required: false
+  description: Délai maximum d'attente de l'installation du correctif.
+  playbookInputQuery: null
+name: EM - Intune Patch Remediation
+outputs: []
+starttaskid: '0'
+tasks:
+  '0':
+    continueonerrortype: ''
+    id: '0'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: e5ac0806-0659-5a51-8dd8-ae8f95a91f19
+      iscommand: false
+      name: ''
+      version: -1
+      description: ''
+    taskid: e5ac0806-0659-5a51-8dd8-ae8f95a91f19
+    timertriggers: []
+    type: start
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '1'
+  '1':
+    continueonerrortype: ''
+    id: '1'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: eb61008a-9f57-523a-9499-5b2d3c8dd1ed
+      iscommand: false
+      name: Réinitialiser le contexte
+      version: -1
+      description: Repart d'un contexte propre (permet de rejouer la démo).
+      type: regular
+      script: DeleteContext
+    taskid: eb61008a-9f57-523a-9499-5b2d3c8dd1ed
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 200
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '2'
+    scriptarguments:
+      all:
+        simple: 'yes'
+  '2':
+    continueonerrortype: ''
+    id: '2'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: Cortex Core - IR
+      id: d26ce2a6-a644-5b31-b82a-21e07bd73695
+      iscommand: true
+      name: Récupérer l'asset Exposure Management
+      version: -1
+      description: Lit l'asset rattaché à l'issue (nom, OS, tags).
+      type: regular
+      script: Cortex Core - IR|||core-get-asset-details
+    taskid: d26ce2a6-a644-5b31-b82a-21e07bd73695
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 350
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '3'
+    scriptarguments:
+      asset_id:
+        simple: ${alert.asset_ids}
+    continueonerror: true
+  '3':
+    continueonerrortype: ''
+    id: '3'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 57d48a7a-0997-573d-af75-9ce793ffc220
+      iscommand: false
+      name: Identifier le poste, la CVE et les correctifs
+      version: -1
+      description: Extrait le hostname, la CVE et les KB correctifs de l'issue.
+      type: regular
+      script: EMIntuneParseIssue
+    taskid: 57d48a7a-0997-573d-af75-9ce793ffc220
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 500
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '4'
+    scriptarguments:
+      hostname:
+        simple: ${Core.CoreAsset.xdm__asset__name}
+  '4':
+    continueonerrortype: ''
+    id: '4'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: a1284a18-7d04-5982-9129-8e3094f46958
+      iscommand: false
+      name: Poste identifié ?
+      version: -1
+      description: ''
+      type: condition
+    taskid: a1284a18-7d04-5982-9129-8e3094f46958
+    timertriggers: []
+    type: condition
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 650
+        }
+      }
+    nexttasks:
+      'yes':
+      - '5'
+      '#default#':
+      - '90'
+    conditions:
+    - label: 'yes'
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: EMIntune.ShortName
+            iscontext: true
+  '5':
+    continueonerrortype: ''
+    id: '5'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 6a6bcc9d-3b30-5202-96bc-471597b838ba
+      iscommand: false
+      name: Préparer la requête Intune
+      version: -1
+      description: ''
+      type: regular
+      script: DeleteContext
+    taskid: 6a6bcc9d-3b30-5202-96bc-471597b838ba
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 800
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '6'
+    scriptarguments:
+      key:
+        simple: MicrosoftGraph
+  '6':
+    continueonerrortype: ''
+    id: '6'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: e194e7f4-5db3-59f1-9e60-2518ac403f3b
+      iscommand: true
+      name: Rechercher le poste dans Intune
+      version: -1
+      description: GET /deviceManagement/managedDevices filtré sur le nom du poste.
+      type: regular
+      script: '|||msgraph-api-request'
+    taskid: e194e7f4-5db3-59f1-9e60-2518ac403f3b
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 950
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '7'
+    scriptarguments:
+      resource:
+        simple: /deviceManagement/managedDevices
+      http_method:
+        simple: GET
+      api_version:
+        simple: v1.0
+      odata:
+        simple: $filter=deviceName eq '${EMIntune.ShortName}'
+  '7':
+    continueonerrortype: ''
+    id: '7'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 3c5899d3-e824-54d1-9ac2-fdb11ababb70
+      iscommand: false
+      name: Poste géré par Intune ?
+      version: -1
+      description: Les serveurs ne sont pas gérés par Intune.
+      type: condition
+    taskid: 3c5899d3-e824-54d1-9ac2-fdb11ababb70
+    timertriggers: []
+    type: condition
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1100
+        }
+      }
+    nexttasks:
+      'yes':
+      - '8'
+      '#default#':
+      - '80'
+    conditions:
+    - label: 'yes'
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: MicrosoftGraph.id
+            iscontext: true
+  '80':
+    continueonerrortype: ''
+    id: '80'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 283d32f8-7ee0-5ca0-9d34-ffacae5dd294
+      iscommand: false
+      name: 'Noter : asset hors Intune'
+      version: -1
+      description: ''
+      type: regular
+      script: Print
+    taskid: 283d32f8-7ee0-5ca0-9d34-ffacae5dd294
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 1250
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '81'
+    scriptarguments:
+      value:
+        simple: ${EMIntune.Hostname} n'est pas géré par Intune (serveur ou équipement hors parc utilisateur). La remédiation de ${EMIntune.CVE} est confiée à l'owner de l'asset.
+  '81':
+    continueonerrortype: ''
+    id: '81'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: adab2ee4-a77a-54ab-98f5-0016efeee2b0
+      iscommand: false
+      name: Assigner la remédiation à l'owner de l'asset
+      version: -1
+      description: 'Asset hors Intune : assigner l''issue à l''équipe propriétaire (voir le champ Remediation Owners) ou créer un ticket, puis marquer la tâche comme terminée.'
+      type: regular
+    taskid: adab2ee4-a77a-54ab-98f5-0016efeee2b0
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 1400
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '99'
+  '8':
+    continueonerrortype: ''
+    id: '8'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 2ff45476-c3b1-5ead-89e6-7280c15513f8
+      iscommand: false
+      name: Mémoriser le poste Intune
+      version: -1
+      description: ''
+      type: regular
+      script: Set
+    taskid: 2ff45476-c3b1-5ead-89e6-7280c15513f8
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1250
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '9'
+    scriptarguments:
+      key:
+        simple: EMIntune.Device
+      value:
+        simple: ${MicrosoftGraph}
+  '9':
+    continueonerrortype: ''
+    id: '9'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: cf9fb7d9-7b66-5ab5-b76b-9f628dd3d843
+      iscommand: false
+      name: Résumé avant approbation
+      version: -1
+      description: ''
+      type: regular
+      script: Print
+    taskid: cf9fb7d9-7b66-5ab5-b76b-9f628dd3d843
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1400
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '10'
+    scriptarguments:
+      value:
+        simple: 'Poste ${EMIntune.Device.deviceName} (${EMIntune.Device.operatingSystem} ${EMIntune.Device.osVersion}, conformité : ${EMIntune.Device.complianceState}), utilisateur ${EMIntune.Device.userDisplayName}. Vulnérabilité ${EMIntune.CVE} (CVSS ${EMIntune.CVSS}). Correctifs Microsoft : ${EMIntune.FixKBs}.'
+  '10':
+    continueonerrortype: ''
+    id: '10'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 92340f06-98a7-5fa5-8f3e-7508e96e86db
+      iscommand: false
+      name: Approuver le déploiement du correctif via Intune ?
+      version: -1
+      description: Validation humaine avant toute action sur le poste de l'utilisateur.
+      type: condition
+    taskid: 92340f06-98a7-5fa5-8f3e-7508e96e86db
+    timertriggers: []
+    type: condition
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1550
+        }
+      }
+    nexttasks:
+      Oui:
+      - '11'
+      Non:
+      - '85'
+  '85':
+    continueonerrortype: ''
+    id: '85'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 0dba6ff5-eb37-5fa3-99fa-34ee4ce6cda8
+      iscommand: false
+      name: 'Noter : correctif refusé'
+      version: -1
+      description: ''
+      type: regular
+      script: Print
+    taskid: 0dba6ff5-eb37-5fa3-99fa-34ee4ce6cda8
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 850,
+          "y": 1700
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '99'
+    scriptarguments:
+      value:
+        simple: Déploiement du correctif refusé par l'analyste pour ${EMIntune.Hostname}.
+  '11':
+    continueonerrortype: ''
+    id: '11'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 10b93846-dda4-55e9-97fe-9a2098659882
+      iscommand: false
+      name: Quelle plateforme ?
+      version: -1
+      description: Choisit le groupe de remédiation Intune selon l'OS.
+      type: condition
+    taskid: 10b93846-dda4-55e9-97fe-9a2098659882
+    timertriggers: []
+    type: condition
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1700
+        }
+      }
+    nexttasks:
+      Windows:
+      - '12'
+      macOS:
+      - '30'
+      iOS:
+      - '31'
+      '#default#':
+      - '90'
+    conditions:
+    - label: Windows
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: EMIntune.Device.operatingSystem
+            iscontext: true
+          right:
+            value:
+              simple: Windows
+    - label: macOS
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: EMIntune.Device.operatingSystem
+            iscontext: true
+          right:
+            value:
+              simple: macOS
+    - label: iOS
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: EMIntune.Device.operatingSystem
+            iscontext: true
+          right:
+            value:
+              simple: iOS
+  '12':
+    continueonerrortype: ''
+    id: '12'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 6753f889-1464-58f9-9a02-e795128c04d6
+      iscommand: false
+      name: 'Groupe : Windows (expedite)'
+      version: -1
+      description: ''
+      type: regular
+      script: Set
+    taskid: 6753f889-1464-58f9-9a02-e795128c04d6
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 100,
+          "y": 1850
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '13'
+    scriptarguments:
+      key:
+        simple: EMIntune.GroupName
+      value:
+        simple: ${inputs.WindowsRemediationGroup}
+  '30':
+    continueonerrortype: ''
+    id: '30'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 9fde7d8d-d08d-5e86-95b3-8b4330447019
+      iscommand: false
+      name: 'Groupe : macOS'
+      version: -1
+      description: ''
+      type: regular
+      script: Set
+    taskid: 9fde7d8d-d08d-5e86-95b3-8b4330447019
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1850
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '13'
+    scriptarguments:
+      key:
+        simple: EMIntune.GroupName
+      value:
+        simple: ${inputs.MacOSRemediationGroup}
+  '31':
+    continueonerrortype: ''
+    id: '31'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 64fee1cb-e1ba-5e75-b21d-64468efe003a
+      iscommand: false
+      name: 'Groupe : iOS'
+      version: -1
+      description: ''
+      type: regular
+      script: Set
+    taskid: 64fee1cb-e1ba-5e75-b21d-64468efe003a
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 800,
+          "y": 1850
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '13'
+    scriptarguments:
+      key:
+        simple: EMIntune.GroupName
+      value:
+        simple: ${inputs.IOSRemediationGroup}
+  '13':
+    continueonerrortype: ''
+    id: '13'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 5e5da9d0-3366-587c-a261-d49512cf11e2
+      iscommand: false
+      name: Préparer la requête groupe
+      version: -1
+      description: ''
+      type: regular
+      script: DeleteContext
+    taskid: 5e5da9d0-3366-587c-a261-d49512cf11e2
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2000
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '14'
+    scriptarguments:
+      key:
+        simple: MicrosoftGraph
+  '14':
+    continueonerrortype: ''
+    id: '14'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 8b5f00d7-a12d-5725-b25b-93455a1a77be
+      iscommand: true
+      name: Rechercher le groupe de remédiation
+      version: -1
+      description: GET /groups filtré sur le nom du groupe.
+      type: regular
+      script: '|||msgraph-api-request'
+    taskid: 8b5f00d7-a12d-5725-b25b-93455a1a77be
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2150
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '15'
+    scriptarguments:
+      resource:
+        simple: /groups
+      http_method:
+        simple: GET
+      api_version:
+        simple: v1.0
+      odata:
+        simple: $filter=displayName eq '${EMIntune.GroupName}'
+  '15':
+    continueonerrortype: ''
+    id: '15'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: b3697828-ff87-5341-b0a3-054659e5276f
+      iscommand: false
+      name: Mémoriser le groupe
+      version: -1
+      description: ''
+      type: regular
+      script: Set
+    taskid: b3697828-ff87-5341-b0a3-054659e5276f
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2300
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '16'
+    scriptarguments:
+      key:
+        simple: EMIntune.GroupId
+      value:
+        simple: ${MicrosoftGraph.id}
+  '16':
+    continueonerrortype: ''
+    id: '16'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: c179068b-59d9-5e42-8838-3ae5d0ae3958
+      iscommand: false
+      name: Préparer la requête Entra ID
+      version: -1
+      description: ''
+      type: regular
+      script: DeleteContext
+    taskid: c179068b-59d9-5e42-8838-3ae5d0ae3958
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2450
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '17'
+    scriptarguments:
+      key:
+        simple: MicrosoftGraph
+  '17':
+    continueonerrortype: ''
+    id: '17'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: e2926119-1c59-5fb8-b3b5-280b5ed14ce7
+      iscommand: true
+      name: Rechercher l'objet appareil Entra ID
+      version: -1
+      description: GET /devices filtré sur azureADDeviceId (l'appartenance aux groupes porte sur l'objet Entra ID).
+      type: regular
+      script: '|||msgraph-api-request'
+    taskid: e2926119-1c59-5fb8-b3b5-280b5ed14ce7
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2600
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '18'
+    scriptarguments:
+      resource:
+        simple: /devices
+      http_method:
+        simple: GET
+      api_version:
+        simple: v1.0
+      odata:
+        simple: $filter=deviceId eq '${EMIntune.Device.azureADDeviceId}'
+  '18':
+    continueonerrortype: ''
+    id: '18'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: a51aa3b8-f593-5774-bb3c-2e9c17a60d71
+      iscommand: false
+      name: Mémoriser l'objet Entra ID
+      version: -1
+      description: ''
+      type: regular
+      script: Set
+    taskid: a51aa3b8-f593-5774-bb3c-2e9c17a60d71
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2750
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '19'
+    scriptarguments:
+      key:
+        simple: EMIntune.EntraObjectId
+      value:
+        simple: ${MicrosoftGraph.id}
+  '19':
+    continueonerrortype: ''
+    id: '19'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 0bb16b0a-1dad-52aa-8397-ba689f9b132e
+      iscommand: true
+      name: Ajouter le poste au groupe de remédiation
+      version: -1
+      description: POST /groups/{id}/members/$ref. La stratégie de mise à jour Intune ciblant ce groupe s'applique alors au poste. Erreur ignorée si le poste est déjà membre.
+      type: regular
+      script: '|||msgraph-api-request'
+    taskid: 0bb16b0a-1dad-52aa-8397-ba689f9b132e
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 2900
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '20'
+    scriptarguments:
+      resource:
+        simple: /groups/${EMIntune.GroupId}/members/$ref
+      http_method:
+        simple: POST
+      api_version:
+        simple: v1.0
+      request_body:
+        simple: '{"@odata.id": "https://graph.microsoft.com/v1.0/directoryObjects/${EMIntune.EntraObjectId}"}'
+    continueonerror: true
+  '20':
+    continueonerrortype: ''
+    id: '20'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 71339463-2431-5c68-9544-4138163169df
+      iscommand: true
+      name: Forcer la synchronisation du poste
+      version: -1
+      description: POST /deviceManagement/managedDevices/{id}/syncDevice
+      type: regular
+      script: '|||msgraph-api-request'
+    taskid: 71339463-2431-5c68-9544-4138163169df
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 3050
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '21'
+    scriptarguments:
+      resource:
+        simple: /deviceManagement/managedDevices/${EMIntune.Device.id}/syncDevice
+      http_method:
+        simple: POST
+      api_version:
+        simple: v1.0
+  '21':
+    continueonerrortype: ''
+    id: '21'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 1100e4f9-aa49-5efe-9f0f-3ad278945787
+      iscommand: false
+      name: Suivre l'installation du correctif
+      version: -1
+      description: Interroge Intune jusqu'à ce que le poste remonte une nouvelle version d'OS et soit conforme.
+      type: regular
+      script: EMIntuneWaitForPatch
+    taskid: 1100e4f9-aa49-5efe-9f0f-3ad278945787
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 3200
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '22'
+    scriptarguments:
+      device_id:
+        simple: ${EMIntune.Device.id}
+      initial_os_version:
+        simple: ${EMIntune.Device.osVersion}
+      timeout_seconds:
+        simple: ${inputs.PatchTimeoutSeconds}
+      interval_seconds:
+        simple: '15'
+      execution-timeout:
+        simple: '1200'
+  '22':
+    continueonerrortype: ''
+    id: '22'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 42733e74-e1a7-597b-944c-0926a2e50597
+      iscommand: false
+      name: Correctif confirmé par Intune ?
+      version: -1
+      description: ''
+      type: condition
+    taskid: 42733e74-e1a7-597b-944c-0926a2e50597
+    timertriggers: []
+    type: condition
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 3350
+        }
+      }
+    nexttasks:
+      'yes':
+      - '23'
+      '#default#':
+      - '90'
+    conditions:
+    - label: 'yes'
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: EMIntune.Patch.Status
+            iscontext: true
+          right:
+            value:
+              simple: Completed
+  '23':
+    continueonerrortype: ''
+    id: '23'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: Builtin
+      id: 2151054c-4bc2-55c4-885f-ae7fd86c017a
+      iscommand: true
+      name: Clôturer l'issue
+      version: -1
+      description: ''
+      type: regular
+      script: Builtin|||closeInvestigation
+    taskid: 2151054c-4bc2-55c4-885f-ae7fd86c017a
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 3500
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '99'
+    scriptarguments:
+      closeReason:
+        simple: Resolved
+      closeNotes:
+        simple: 'Remédiation automatisée Cortex XSIAM + Intune : ${EMIntune.CVE} corrigée sur ${EMIntune.Device.deviceName} via le groupe ${EMIntune.GroupName}. Version OS ${EMIntune.Patch.InitialOSVersion} -> ${EMIntune.Patch.OSVersion}, poste conforme (${EMIntune.Patch.DurationSeconds} s). Confirmation finale au prochain scan de vulnérabilités.'
+  '90':
+    continueonerrortype: ''
+    id: '90'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: 7e0af622-f5ea-5f5f-b08a-906eebdadb71
+      iscommand: false
+      name: Analyst action
+      version: -1
+      description: Remédiation automatique impossible ou non confirmée (poste non identifié, plateforme non couverte, ou correctif non installé dans le délai). Vérifier le poste dans la console Intune, puis traiter l'issue selon le processus de gestion des vulnérabilités.
+      type: regular
+    taskid: 7e0af622-f5ea-5f5f-b08a-906eebdadb71
+    timertriggers: []
+    type: regular
+    view: |-
+      {
+        "position": {
+          "x": 850,
+          "y": 3500
+        }
+      }
+    nexttasks:
+      '#none#':
+      - '99'
+  '99':
+    continueonerrortype: ''
+    id: '99'
+    ignoreworker: false
+    isautoswitchedtoquietmode: false
+    isoversize: false
+    note: false
+    quietmode: 0
+    separatecontext: false
+    skipunavailable: false
+    task:
+      brand: ''
+      id: bd26a743-80f3-5c90-a6cc-03851497ae01
+      iscommand: false
+      name: Done
+      version: -1
+      description: ''
+      type: title
+    taskid: bd26a743-80f3-5c90-a6cc-03851497ae01
+    timertriggers: []
+    type: title
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 3700
+        }
+      }
+version: -1
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 3900,
+        "width": 1250,
+        "x": 0,
+        "y": 0
+      }
+    }
+  }
+tests:
+- No tests
+fromversion: 6.10.0

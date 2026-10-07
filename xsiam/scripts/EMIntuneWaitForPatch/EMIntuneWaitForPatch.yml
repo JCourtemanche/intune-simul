@@ -1,0 +1,50 @@
+commonfields:
+  id: EMIntuneWaitForPatch
+  version: -1
+name: EMIntuneWaitForPatch
+comment: Polls Intune (msgraph-api-request) until the device reports a new OS version and a compliant state, or until the timeout.
+script: ''
+type: python
+subtype: python3
+tags:
+- Exposure Management
+- Intune
+enabled: true
+args:
+- name: device_id
+  required: true
+  description: Intune managed device ID.
+- name: initial_os_version
+  required: true
+  description: OS version recorded before the remediation.
+- name: timeout_seconds
+  defaultValue: '600'
+  description: Maximum wait in seconds.
+- name: interval_seconds
+  defaultValue: '20'
+  description: Polling interval in seconds.
+- name: using
+  description: Optional integration instance name to run msgraph-api-request with.
+outputs:
+- contextPath: EMIntune.Patch.Status
+  description: Completed or Timeout.
+  type: String
+- contextPath: EMIntune.Patch.OSVersion
+  description: OS version after remediation.
+  type: String
+- contextPath: EMIntune.Patch.InitialOSVersion
+  description: OS version before remediation.
+  type: String
+- contextPath: EMIntune.Patch.ComplianceState
+  description: Intune compliance state after remediation.
+  type: String
+- contextPath: EMIntune.Patch.DurationSeconds
+  description: Time spent waiting.
+  type: Number
+scripttarget: 0
+runas: DBotWeakRole
+dockerimage: demisto/python3:3.12.13.10116658
+runonce: false
+fromversion: 6.10.0
+tests:
+- No tests

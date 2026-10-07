@@ -1,0 +1,41 @@
+commonfields:
+  id: EMIntuneParseIssue
+  version: -1
+name: EMIntuneParseIssue
+comment: Reads the current Exposure Management vulnerability issue and returns the hostname, CVE and fix KBs needed by the Intune remediation playbook (EMIntune.*).
+script: ''
+type: python
+subtype: python3
+tags:
+- Exposure Management
+- Intune
+enabled: true
+args:
+- name: hostname
+  description: Asset hostname (e.g. ${Core.CoreAsset.xdm__asset__name}). Falls back to the host parsed from the issue name.
+outputs:
+- contextPath: EMIntune.Hostname
+  description: Asset hostname.
+  type: String
+- contextPath: EMIntune.ShortName
+  description: Hostname without domain (Intune deviceName).
+  type: String
+- contextPath: EMIntune.CVE
+  description: CVE of the issue.
+  type: String
+- contextPath: EMIntune.FixKBs
+  description: Microsoft KB articles that fix the CVE.
+  type: Unknown
+- contextPath: EMIntune.FixVersions
+  description: Fix versions reported by Cortex Vulnerability Intelligence.
+  type: Unknown
+- contextPath: EMIntune.AssetId
+  description: Cortex asset ID.
+  type: String
+scripttarget: 0
+runas: DBotWeakRole
+dockerimage: demisto/python3:3.12.13.10116658
+runonce: false
+fromversion: 6.10.0
+tests:
+- No tests

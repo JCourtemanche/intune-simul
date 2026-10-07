@@ -1,0 +1,19 @@
+runtime: python311
+instance_class: F1
+entrypoint: gunicorn -b :$PORT -w 1 --threads 8 app:app
+
+env_variables:
+  DEBUG: "False"
+  SIM_TENANT_ID: "00000000-0000-0000-0000-000000000000"
+  SIM_CLIENT_ID: "11111111-1111-1111-1111-111111111111"
+  SIM_CLIENT_SECRET: "change-me-intune-simulator-secret"
+
+handlers:
+  - url: /.*
+    script: auto
+    secure: always
+
+# The fleet state lives in memory: keep a single instance
+automatic_scaling:
+  min_instances: 0
+  max_instances: 1

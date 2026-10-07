@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Microsoft Intune admin center (simulateur) - Business Corp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #faf9f8; --panel: #ffffff; --border: #e1dfdd; --text: #323130; --muted: #605e5c;
+    --blue: #0078d4; --green: #107c10; --red: #a4262c; --amber: #8a6d00; --amber-bg: #fff4ce;
+    --green-bg: #dff6dd; --red-bg: #fde7e9; --blue-bg: #deecf9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", -apple-system, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { background: #1b1a19; color: #fff; height: 48px; display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+  header .brand { font-weight: 600; font-size: 15px; }
+  header .badge { background: #ffb900; color: #1b1a19; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 2px; letter-spacing: .5px; }
+  header .tenant { margin-left: auto; font-size: 13px; color: #c8c6c4; }
+  .layout { display: flex; min-height: calc(100vh - 48px); }
+  nav { width: 210px; background: var(--panel); border-right: 1px solid var(--border); padding: 12px 0; }
+  nav div { padding: 9px 20px; color: var(--muted); }
+  nav div.active { background: #edebe9; color: var(--text); font-weight: 600; border-left: 3px solid var(--blue); padding-left: 17px; }
+  main { flex: 1; padding: 20px 28px; min-width: 0; }
+  .crumbs { color: var(--muted); font-size: 12px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 4px 0 2px; }
+  .subtitle { color: var(--muted); margin-bottom: 18px; }
+  .tiles { display: grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .tile { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; }
+  .tile .label { color: var(--muted); font-size: 12px; }
+  .tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .card h2 .hint { margin-left: auto; font-weight: 400; color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f3f2f1; vertical-align: middle; }
+  tr.persona td:first-child { border-left: 3px solid var(--blue); }
+  tr.flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { from { background: #fff4ce; } to { background: transparent; } }
+  .dev { font-weight: 600; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .mono { font-family: Consolas, "Courier New", monospace; font-size: 12.5px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .ok { background: var(--green-bg); color: var(--green); }
+  .ko { background: var(--red-bg); color: var(--red); }
+  .run { background: var(--blue-bg); color: var(--blue); }
+  .wait { background: var(--amber-bg); color: var(--amber); }
+  .bar { height: 6px; background: #edebe9; border-radius: 3px; overflow: hidden; margin-top: 5px; width: 160px; }
+  .bar > span { display: block; height: 100%; background: var(--blue); transition: width .8s ease; }
+  .bar.done > span { background: var(--green); }
+  .events { max-height: 640px; overflow-y: auto; }
+  .ev { padding: 9px 16px; border-bottom: 1px solid #f3f2f1; }
+  .ev .meta { font-size: 11.5px; color: var(--muted); display: flex; gap: 8px; }
+  .ev .src { font-weight: 600; }
+  .ev .src.xsiam { color: #fa582d; }
+  .ev .src.intune { color: var(--blue); }
+  .ev.success { background: #f1faf1; }
+  .ev.warn { background: #fffbe6; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .toolbar input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 2px; width: 260px; font: inherit; }
+  .toolbar label { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+  button { font: inherit; padding: 6px 14px; border: 1px solid var(--border); background: var(--panel); border-radius: 2px; cursor: pointer; }
+  button:hover { background: #f3f2f1; }
+  .live { margin-left: auto; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+  @media (max-width: 1200px) { .grid { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); } nav { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Microsoft Intune admin center</span>
+  <span class="badge">SIMULATEUR DE DÉMO</span>
+  <span class="tenant">Business Corp (business.org)</span>
+</header>
+<div class="layout">
+  <nav>
+    <div>Accueil</div><div>Tableau de bord</div><div class="active">Appareils</div><div>Applications</div>
+    <div>Sécurité des points de terminaison</div><div>Rapports</div><div>Utilisateurs</div><div>Groupes</div>
+  </nav>
+  <main>
+    <div class="crumbs">Accueil &gt; Appareils</div>
+    <h1>Appareils | Remédiation pilotée par Cortex XSIAM</h1>
+    <div class="subtitle">Les mises à jour de sécurité sont déclenchées par Cortex XSIAM Exposure Management et appliquées par les stratégies Intune existantes.</div>
+
+    <div class="tiles">
+      <div class="tile"><div class="label">Appareils gérés</div><div class="value" id="t-total">-</div></div>
+      <div class="tile"><div class="label">Conformes</div><div class="value" id="t-ok" style="color:var(--green)">-</div></div>
+      <div class="tile"><div class="label">Non conformes</div><div class="value" id="t-ko" style="color:var(--red)">-</div></div>
+      <div class="tile"><div class="label">Remédiations en cours</div><div class="value" id="t-run" style="color:var(--blue)">-</div></div>
+      <div class="tile"><div class="label">Remédiés par XSIAM</div><div class="value" id="t-done" style="color:var(--green)">-</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input id="search" placeholder="Rechercher un appareil ou un utilisateur">
+      <label><input type="checkbox" id="only-focus" checked> Afficher uniquement les appareils à remédier</label>
+      <button id="reset" title="Remet le parc dans son état initial">Réinitialiser la démo</button>
+      <span class="live"><span class="dot"></span><span id="refreshed">Actualisation automatique</span></span>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Tous les appareils <span class="hint" id="count"></span></h2>
+        <table>
+          <thead><tr>
+            <th>Appareil</th><th>Utilisateur principal</th><th>Système</th><th>Version de l'OS</th>
+            <th>Conformité</th><th>Mise à jour de sécurité</th><th>Dernier check-in</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Journal d'activité <span class="hint">temps réel</span></h2>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+const prev = {};
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const time = iso => iso ? new Date(iso).toLocaleTimeString('fr-FR') : '';
+const ago = iso => {
+  if (!iso) return '';
+  const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
+  if (s < 60) return "à l'instant";
+  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
+  return `il y a ${Math.floor(s / 86400)} j`;
+};
+
+function patchCell(p) {
+  if (!p) return '<span class="muted">Aucune action</span>';
+  const cls = {completed: 'ok', already_patched: 'ok', not_applicable: 'ko', assigned: 'wait'}[p.stage] || 'run';
+  const bar = ['assigned', 'not_applicable'].includes(p.stage) ? '' :
+    `<div class="bar ${p.progress >= 100 ? 'done' : ''}"><span style="width:${p.progress}%"></span></div>`;
+  return `<span class="pill ${cls}">${esc(p.label)}</span><div class="muted" style="margin-top:3px">${esc(p.update)}</div>${bar}`;
+}
+
+function render(state) {
+  const s = state.stats;
+  document.getElementById('t-total').textContent = s.total;
+  document.getElementById('t-ok').textContent = s.compliant;
+  document.getElementById('t-ko').textContent = s.noncompliant;
+  document.getElementById('t-run').textContent = s.in_progress;
+  document.getElementById('t-done').textContent = s.remediated;
+
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const onlyFocus = document.getElementById('only-focus').checked;
+  const rows = state.devices.filter(d =>
+    (!onlyFocus || d.persona || d.patch) &&
+    (!q || d.deviceName.toLowerCase().includes(q) || d.user.toLowerCase().includes(q)));
+  document.getElementById('count').textContent = `${rows.length} sur ${state.devices.length}`;
+
+  document.getElementById('rows').innerHTML = rows.map(d => {
+    const sig = `${d.osVersion}|${d.complianceState}|${d.patch ? d.patch.stage : ''}`;
+    const changed = prev[d.deviceName] !== undefined && prev[d.deviceName] !== sig;
+    prev[d.deviceName] = sig;
+    const comp = d.complianceState === 'compliant' ? '<span class="pill ok">Conforme</span>' : '<span class="pill ko">Non conforme</span>';
+    const ver = d.patch && d.patch.stage === 'completed'
+      ? `<span class="mono">${esc(d.osVersion)}</span><div class="muted">avant : ${esc(d.patch.from_version)}</div>`
+      : `<span class="mono">${esc(d.osVersion)}</span>`;
+    return `<tr class="${d.persona ? 'persona' : ''} ${changed ? 'flash' : ''}">
+      <td><div class="dev">${esc(d.deviceName)}</div><div class="muted">${esc(d.groups.join(', '))}</div></td>
+      <td>${esc(d.user)}<div class="muted">${esc(d.upn)}</div></td>
+      <td>${esc(d.osLabel)}</td><td>${ver}</td><td>${comp}</td><td>${patchCell(d.patch)}</td>
+      <td title="${esc(d.lastSyncDateTime)}">${ago(d.lastSyncDateTime)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('events').innerHTML = state.events.map(e => {
+    const src = e.source === 'Cortex XSIAM' ? 'xsiam' : (e.source === 'Intune' ? 'intune' : '');
+    return `<div class="ev ${esc(e.level)}"><div class="meta"><span>${time(e.ts)}</span>
+      <span class="src ${src}">${esc(e.source)}</span>${e.device ? `<span>${esc(e.device)}</span>` : ''}</div>
+      <div>${esc(e.message)}</div></div>`;
+  }).join('');
+  document.getElementById('refreshed').textContent = `Actualisé à ${new Date().toLocaleTimeString('fr-FR')}`;
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/console/api/state', {cache: 'no-store'});
+    render(await r.json());
+  } catch (e) {
+    document.getElementById('refreshed').textContent = 'Connexion perdue, nouvelle tentative...';
+  }
+}
+
+document.getElementById('search').addEventListener('input', refresh);
+document.getElementById('only-focus').addEventListener('change', refresh);
+document.getElementById('reset').addEventListener('click', async () => {
+  if (!confirm('Réinitialiser le parc Intune simulé ?')) return;
+  await fetch('/console/api/reset', {method: 'POST'});
+  for (const k in prev) delete prev[k];
+  refresh();
+});
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>
