@@ -1,0 +1,105 @@
+commonfields:
+  id: EMIntuneDeployPatch
+  version: -1
+name: EMIntuneDeployPatch
+comment: Adds the device to the Entra ID group targeted by the Intune update policy of its platform, then forces a device check-in (msgraph-api-request).
+script: |
+  """
+  Step 3 of the demo playbook: deploy the fix through Intune.
+
+  XSIAM does not push binaries: it adds the device to the Entra ID group targeted by the
+  customer's Intune update policy for its platform, then forces a device check-in.
+  All calls go through msgraph-api-request (official Microsoft Graph API integration or
+  the Intune (Demo) one).
+  """
+
+
+  def graph(resource: str, method: str = 'GET', odata: str = '', body: dict | None = None,
+            ignore_error: str = '') -> dict | None:
+      args = {'resource': resource, 'http_method': method, 'populate_context': 'false'}
+      if odata:
+          args['odata'] = odata
+      if body is not None:
+          args['request_body'] = json.dumps(body)
+      for entry in demisto.executeCommand('msgraph-api-request', args) or []:
+          if is_error(entry):
+              error = get_error(entry)
+              if ignore_error and ignore_error in error:
+                  return None
+              raise DemistoException(f'{method} {resource} failed: {error}')
+          contents = entry.get('Contents')
+          if isinstance(contents, dict):
+              return contents
+      return None
+
+
+  def first(result: dict | None, what: str) -> dict:
+      items = (result or {}).get('value') or []
+      if not items:
+          raise DemistoException(f'{what} not found')
+      return items[0]
+
+
+  def main():  # pragma: no cover
+      args = demisto.args()
+      device_id = args['device_id']
+      platform = args['operating_system']
+      groups = {'Windows': args.get('windows_group'), 'macOS': args.get('macos_group'), 'iOS': args.get('ios_group')}
+      group_name = groups.get(platform)
+      if not group_name:
+          raise DemistoException(f'No remediation group configured for {platform}')
+
+      group = first(graph('/groups', odata=f"$filter=displayName eq '{group_name}'"), f'Group {group_name}')
+      entra = first(graph('/devices', odata=f"$filter=deviceId eq '{args['azure_ad_device_id']}'"),
+                    'Entra ID device')
+      graph(f"/groups/{group['id']}/members/$ref", 'POST',
+            body={'@odata.id': f"https://graph.microsoft.com/v1.0/directoryObjects/{entra['id']}"},
+            ignore_error='already exist')
+      graph(f'/deviceManagement/managedDevices/{device_id}/syncDevice', 'POST')
+
+      md = (f'### Correctif déclenché dans Intune\n'
+            f'1. Poste **{entra.get("displayName")}** ajouté au groupe **{group_name}**, '
+            f'ciblé par la stratégie de mise à jour {platform}.\n'
+            f'2. Synchronisation du poste forcée : il applique la stratégie immédiatement.')
+      return_results(CommandResults(outputs_prefix='EMIntune', outputs={'GroupName': group_name},
+                                    readable_output=md))
+
+
+  if __name__ in ('__main__', '__builtin__', 'builtins'):
+      main()
+type: python
+subtype: python3
+tags:
+- Exposure Management
+- Intune
+enabled: true
+args:
+- name: device_id
+  required: true
+  description: Intune managed device ID.
+- name: azure_ad_device_id
+  required: true
+  description: Entra ID device ID (azureADDeviceId of the managed device).
+- name: operating_system
+  required: true
+  description: Windows, macOS or iOS.
+- name: windows_group
+  defaultValue: XSIAM-Remediation-Windows-Expedite
+  description: Entra ID group targeted by the Windows expedited update profile.
+- name: macos_group
+  defaultValue: XSIAM-Remediation-macOS-Update
+  description: Entra ID group targeted by the macOS update policy.
+- name: ios_group
+  defaultValue: XSIAM-Remediation-iOS-Update
+  description: Entra ID group targeted by the iOS update policy.
+outputs:
+- contextPath: EMIntune.GroupName
+  description: Remediation group the device was added to.
+  type: String
+scripttarget: 0
+runas: DBotWeakRole
+dockerimage: demisto/python3:3.12.13.10116658
+runonce: false
+fromversion: 6.10.0
+tests:
+- No tests

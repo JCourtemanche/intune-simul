@@ -60,8 +60,6 @@ script:
     so it can target the Intune simulator. A playbook built on this integration runs unchanged
     on the official Microsoft Graph API integration once a real Entra ID app is available.
     """
-    import demistomock as demisto  # noqa: F401
-    from CommonServerPython import *  # noqa: F401
 
     import time
     from typing import Any

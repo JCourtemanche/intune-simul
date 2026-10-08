@@ -57,14 +57,15 @@ def main():  # pragma: no cover
             break
         time.sleep(interval)
 
-    status = 'Completed' if patched else 'Timeout'
+    if not patched:
+        raise DemistoException(f"Fix not confirmed by Intune on {device.get('deviceName')} after {timeout} s "
+                               f"(OS version {device.get('osVersion')}, {device.get('complianceState')}).")
     outputs = {
-        'DeviceId': device_id, 'DeviceName': device.get('deviceName'), 'Status': status,
+        'DeviceId': device_id, 'DeviceName': device.get('deviceName'), 'Status': 'Completed',
         'InitialOSVersion': initial, 'OSVersion': device.get('osVersion'),
         'ComplianceState': device.get('complianceState'), 'DurationSeconds': int(time.time() - start),
     }
-    title = (f"Correctif installé sur {device.get('deviceName')} ({initial} → {device.get('osVersion')})"
-             if patched else f"Correctif non confirmé sur {device.get('deviceName')} après {timeout} s")
+    title = f"Correctif installé sur {device.get('deviceName')} ({initial} → {device.get('osVersion')})"
     return_results(CommandResults(outputs_prefix='EMIntune.Patch', outputs=outputs,
                                   readable_output=tableToMarkdown(title, timeline)))
 

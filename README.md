@@ -6,7 +6,7 @@ Le kit contient :
 
 1. **Un simulateur de l'API Microsoft Graph** (Entra ID + Intune), à déployer sur Cloud Run, avec une **console web façon Intune** pour montrer le résultat au client en direct.
 2. **Une intégration XSIAM « Intune (Demo) »** qui expose la même commande que l'intégration officielle *Microsoft Graph API* (`msgraph-api-request`, mêmes arguments, même contexte `MicrosoftGraph`).
-3. **Un playbook « EM - Intune Patch Remediation »** et deux automatisations.
+3. **Un playbook « EM - Intune Patch Remediation »** volontairement épuré (5 étapes, une seule décision) et trois automatisations qui portent la plomberie Graph.
 
 Le playbook ne dépend que de `msgraph-api-request`. Pour passer en production, il suffit de configurer l'intégration officielle *Microsoft Graph API* et de désactiver « Intune (Demo) » : **le playbook ne change pas**.
 
@@ -14,18 +14,27 @@ Basé sur [xsiam-simulator-template](https://github.com/JCourtemanche/xsiam-simu
 
 ## Le scénario
 
+Le playbook tient en 5 étapes métier et une seule décision, pour rester lisible par un public non technique :
+
 ```
-Issue Exposure Management                 Playbook XSIAM                              Intune (simulé)
-"CVE-2024-38063 vulnerability    ->  1. lit l'asset, la CVE, les KB correctifs
- at BSNS-WIN-ALICE"                  2. cherche le poste dans Intune          ->  GET managedDevices
-                                     3. serveur ? -> remédiation par l'owner
-                                     4. approbation de l'analyste
-                                     5. ajoute le poste au groupe              ->  POST groups/{id}/members/$ref
-                                        de remédiation (stratégie expedite)        (stratégie de mise à jour assignée)
-                                     6. force la synchronisation               ->  POST syncDevice
-                                     7. suit l'installation                    ->  osVersion 19045.4651 -> 19045.4780
-                                     8. clôture l'issue avec une note              conformité : conforme
+1. Identifier le poste et la vulnérabilité ──> 2. Valider le déploiement du correctif ? ──Non──> Done
+                                                     │ Oui
+                                              3. Déployer le correctif via Intune
+                                              4. Suivre l'installation sur le poste
+                                              5. Clôturer l'issue ──> Done
 ```
+
+Ce que fait chaque étape côté Intune (simulé) :
+
+| Étape | Automatisation | Appels Microsoft Graph |
+|---|---|---|
+| 1. Identifier le poste et la vulnérabilité | `EMIntuneIdentifyDevice` | lit l'issue (poste, CVE, KB) puis `GET managedDevices?$filter=deviceName eq '...'` |
+| 2. Valider le déploiement du correctif ? | tâche manuelle Oui / Non | aucun |
+| 3. Déployer le correctif via Intune | `EMIntuneDeployPatch` | `GET groups`, `GET devices`, `POST groups/{id}/members/$ref`, `POST syncDevice` |
+| 4. Suivre l'installation sur le poste | `EMIntuneWaitForPatch` | `GET managedDevices/{id}` jusqu'à osVersion 19045.4651 → 19045.4780 et poste conforme |
+| 5. Clôturer l'issue | `closeInvestigation` | aucun |
+
+C'est un démonstrateur : les cas d'erreur ne sont pas tous traités par des branches. Si le poste n'est pas géré par Intune (un serveur par exemple) ou si le correctif n'est pas confirmé dans le délai, la tâche concernée s'arrête en erreur avec un message explicite dans le War Room.
 
 Principe : **XSIAM orchestre, Intune patche**. XSIAM ne pousse pas de binaire, il place le poste dans un groupe Entra ID déjà ciblé par une stratégie de mise à jour Intune (profil Windows *expedite*, stratégie de mise à jour macOS / iOS). C'est le fonctionnement le plus proche de la production : le client garde ses stratégies, ses anneaux et ses fenêtres de maintenance.
 
@@ -42,7 +51,7 @@ Principe : **XSIAM orchestre, Intune patche**. XSIAM ne pousse pas de binaire, i
 
 Ces versions correspondent aux correctifs que Cortex Vulnerability Intelligence remonte dans les issues (`xdmvulnerabilityfixversions`) : KB d'août 2024 pour CVE-2024-38063, 14.1.2 / 17.1.2 pour CVE-2023-42917 (WebKit).
 
-Le parc contient aussi 24 appareils de remplissage déjà à jour. Les serveurs `srv-*.business.org` ne sont volontairement **pas** dans Intune : le playbook montre alors la branche « asset hors Intune, remédiation par l'owner ».
+Le parc contient aussi 24 appareils de remplissage déjà à jour. Les serveurs `srv-*.business.org` ne sont volontairement **pas** dans Intune : l'étape 1 s'arrête alors avec le message « not managed by Intune: remediation goes to the asset owner ».
 
 Groupes de remédiation : `XSIAM-Remediation-Windows-Expedite`, `XSIAM-Remediation-macOS-Update`, `XSIAM-Remediation-iOS-Update`.
 
@@ -115,10 +124,12 @@ Ordre d'import :
    - Server URL : URL Cloud Run du simulateur
    - Tenant ID / Application ID / Application Secret : `SIM_TENANT_ID` / `SIM_CLIENT_ID` / `SIM_CLIENT_SECRET`
    - Test : doit répondre `ok`
-2. **Automatisations** `automation-EMIntuneParseIssue.yml` et `automation-EMIntuneWaitForPatch.yml` (Scripts → Import).
+2. **Automatisations** `automation-EMIntuneIdentifyDevice.yml`, `automation-EMIntuneDeployPatch.yml` et `automation-EMIntuneWaitForPatch.yml` (Scripts → Import).
 3. **Playbook** `playbook-EM_-_Intune_Patch_Remediation.yml` (Playbooks → Import).
 
-Dépendances déjà présentes sur un tenant XSIAM : `Cortex Core - IR` (`core-get-asset-details`), scripts `DeleteContext`, `Set`, `Print`, commande `closeInvestigation`.
+Dépendances déjà présentes sur un tenant XSIAM : script `DeleteContext`, commande `closeInvestigation`.
+
+Les fichiers de `xsiam/dist/` sont assemblés comme le ferait `demisto-sdk unify` : les imports de développement (`demistomock`, `CommonServerPython`) sont retirés, la plateforme les injecte elle-même. Les importer depuis les sources (`xsiam/integrations`, `xsiam/scripts`) provoque `ModuleNotFoundError: No module named 'demistomock'`.
 
 Si l'intégration officielle *Microsoft Graph API* est aussi configurée sur le tenant, les tâches `msgraph-api-request` s'exécuteraient sur les deux instances : n'en garder qu'une active.
 
@@ -129,7 +140,7 @@ Si l'intégration officielle *Microsoft Graph API* est aussi configurée sur le 
 Avant la démo :
 
 1. Ouvrir l'issue hero et **la rouvrir** : changer son statut en *Under Investigation*. Si `setPlaybook` répond encore `reopen_inv_id`, attendre quelques secondes et relancer.
-2. Ou choisir une issue crédible encore ouverte, par exemple **CVE-2023-42917 vulnerability at BSNS-MAC-EMMA** (WebKit, macOS 14.1.1 → 14.1.2). Le playbook suit alors la branche macOS et le groupe `XSIAM-Remediation-macOS-Update`.
+2. Ou choisir une issue crédible encore ouverte, par exemple **CVE-2023-42917 vulnerability at BSNS-MAC-EMMA** (WebKit, macOS 14.1.1 → 14.1.2). Le playbook utilise alors le groupe `XSIAM-Remediation-macOS-Update`.
 3. Après une répétition, l'issue est clôturée par le playbook : la rouvrir de la même façon et cliquer **Réinitialiser la démo** dans la console du simulateur.
 
 Paires issue / poste crédibles pour ce scénario (les autres CVE des postes Business Corp sont attribuées au hasard par le simulateur Rapid7 et ne correspondent pas toujours à l'OS) :
@@ -145,11 +156,11 @@ Paires issue / poste crédibles pour ce scénario (les autres CVE des postes Bus
 1. Ouvrir la console du simulateur (`<URL>/console`), cliquer **Réinitialiser la démo**.
 2. Dans XSIAM, ouvrir l'issue **CVE-2024-38063 vulnerability at BSNS-WIN-ALICE** (Vulnerability Issues, filtre sur le groupe `EM-demo-grp-Business-Corp`), rouverte comme indiqué ci-dessus.
 3. Exécuter le playbook **EM - Intune Patch Remediation** sur l'issue (War Room : `!setPlaybook name="EM - Intune Patch Remediation"`, ou depuis l'onglet Resolution / Work Plan).
-4. Dans le Work Plan, répondre **Oui** à « Approuver le déploiement du correctif via Intune ? ».
+4. Dans le Work Plan, répondre **Oui** à « 2. Valider le déploiement du correctif ? ».
 5. Montrer la console Intune : ajout au groupe, check-in, téléchargement, installation, poste conforme (environ 2 min 30 avec la valeur par défaut).
 6. Revenir sur l'issue : clôturée avec la note de remédiation (versions avant / après).
 
-Pour montrer la branche « hors Intune », lancer le même playbook sur une issue d'un serveur (ex. `srv-web-01.business.org`).
+Pour montrer qu'un serveur n'est pas traité par Intune, lancer le même playbook sur une issue de serveur (ex. `srv-web-01.business.org`) : l'étape 1 s'arrête avec un message explicite.
 
 ### Dépannage
 
@@ -158,11 +169,12 @@ Pour montrer la branche « hors Intune », lancer le même playbook sur une issu
 | `setPlaybook` répond `reopen_inv_id` | Issue fermée | La rouvrir (statut *Under Investigation*), patienter quelques secondes, relancer |
 | Test de l'instance « Intune (Demo) » en échec `AADSTS7000215` | Secret différent de `SIM_CLIENT_SECRET` | Aligner le secret de l'instance sur la variable du service Cloud Run |
 | Test de l'instance en échec réseau / 403 | Accès au service Cloud Run non ouvert à XSIAM | Revoir l'accès au service côté GCP |
-| Branche « Analyst action » dès le début | Hostname introuvable (asset et nom d'issue vides) | Vérifier `${alert.asset_ids}` et la sortie de `EMIntuneParseIssue` dans le War Room |
-| Branche « asset hors Intune » sur un poste | Le nom du poste ne correspond à aucun appareil du simulateur | Vérifier le hostname (`BSNS-WIN-ALICE`…) dans la console |
+| `ModuleNotFoundError: No module named 'demistomock'` | Intégration ou script importé depuis les sources | Importer les fichiers de `xsiam/dist/` (régénérés par `python xsiam/build.py`) |
+| Étape 1 en erreur « No hostname found » | Nom d'issue inattendu | Le hostname est lu dans le nom de l'issue (`... vulnerability at <HOST>`) ; il peut être passé en argument `hostname` |
+| Étape 1 en erreur « not managed by Intune » sur un poste | Le nom du poste ne correspond à aucun appareil du simulateur | Vérifier le hostname (`BSNS-WIN-ALICE`…) dans la console |
 | Tâches `msgraph-api-request` exécutées deux fois | Intégration officielle Graph API aussi active | Désactiver l'une des deux instances |
 | Console revenue à l'état initial en pleine démo | Cold start Cloud Run | Déployer avec `MIN_INSTANCES=1` |
-| Correctif « non confirmé » (timeout) | `PatchTimeoutSeconds` inférieur à `PATCH_DURATION_SECONDS` + check-in | Augmenter l'entrée du playbook ou réduire `PATCH_DURATION_SECONDS` |
+| Étape 4 en erreur « Fix not confirmed » | `PatchTimeoutSeconds` inférieur à `PATCH_DURATION_SECONDS` + check-in | Augmenter l'entrée du playbook ou réduire `PATCH_DURATION_SECONDS` |
 
 ### Passage en production
 
@@ -183,8 +195,9 @@ intune-simul/
 │   └── templates/console.html                 # console façon Intune admin center
 ├── xsiam/
 │   ├── integrations/IntuneDemo/               # intégration Intune (Demo)
-│   ├── scripts/EMIntuneParseIssue/            # lecture de l'issue (hostname, CVE, KB)
-│   ├── scripts/EMIntuneWaitForPatch/          # suivi de l'installation
+│   ├── scripts/EMIntuneIdentifyDevice/        # étape 1 : issue (poste, CVE, KB) + poste Intune
+│   ├── scripts/EMIntuneDeployPatch/           # étape 3 : groupe de remédiation + synchronisation
+│   ├── scripts/EMIntuneWaitForPatch/          # étape 4 : suivi de l'installation
 │   ├── build.py                               # génère xsiam/dist/ (dont le playbook)
 │   └── dist/                                  # fichiers à importer dans XSIAM
 ├── docs/talk-track-fr.md                      # déroulé de démo

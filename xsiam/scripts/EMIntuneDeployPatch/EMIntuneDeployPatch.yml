@@ -1,0 +1,42 @@
+commonfields:
+  id: EMIntuneDeployPatch
+  version: -1
+name: EMIntuneDeployPatch
+comment: Adds the device to the Entra ID group targeted by the Intune update policy of its platform, then forces a device check-in (msgraph-api-request).
+script: ''
+type: python
+subtype: python3
+tags:
+- Exposure Management
+- Intune
+enabled: true
+args:
+- name: device_id
+  required: true
+  description: Intune managed device ID.
+- name: azure_ad_device_id
+  required: true
+  description: Entra ID device ID (azureADDeviceId of the managed device).
+- name: operating_system
+  required: true
+  description: Windows, macOS or iOS.
+- name: windows_group
+  defaultValue: XSIAM-Remediation-Windows-Expedite
+  description: Entra ID group targeted by the Windows expedited update profile.
+- name: macos_group
+  defaultValue: XSIAM-Remediation-macOS-Update
+  description: Entra ID group targeted by the macOS update policy.
+- name: ios_group
+  defaultValue: XSIAM-Remediation-iOS-Update
+  description: Entra ID group targeted by the iOS update policy.
+outputs:
+- contextPath: EMIntune.GroupName
+  description: Remediation group the device was added to.
+  type: String
+scripttarget: 0
+runas: DBotWeakRole
+dockerimage: demisto/python3:3.12.13.10116658
+runonce: false
+fromversion: 6.10.0
+tests:
+- No tests

@@ -1,0 +1,44 @@
+commonfields:
+  id: EMIntuneIdentifyDevice
+  version: -1
+name: EMIntuneIdentifyDevice
+comment: Reads the current Exposure Management issue (hostname, CVE, fix KBs) and finds the device in Intune (msgraph-api-request). Outputs EMIntune.*.
+script: ''
+type: python
+subtype: python3
+tags:
+- Exposure Management
+- Intune
+enabled: true
+args:
+- name: hostname
+  description: Asset hostname. Defaults to the host parsed from the issue name ("CVE-... vulnerability at <HOST>").
+outputs:
+- contextPath: EMIntune.Hostname
+  description: Device name.
+  type: String
+- contextPath: EMIntune.CVE
+  description: CVE of the issue.
+  type: String
+- contextPath: EMIntune.FixKBs
+  description: Microsoft KB articles that fix the CVE.
+  type: Unknown
+- contextPath: EMIntune.Device.Id
+  description: Intune managed device ID.
+  type: String
+- contextPath: EMIntune.Device.OperatingSystem
+  description: Windows, macOS or iOS.
+  type: String
+- contextPath: EMIntune.Device.OSVersion
+  description: OS version before remediation.
+  type: String
+- contextPath: EMIntune.Device.AzureADDeviceId
+  description: Entra ID device ID.
+  type: String
+scripttarget: 0
+runas: DBotWeakRole
+dockerimage: demisto/python3:3.12.13.10116658
+runonce: false
+fromversion: 6.10.0
+tests:
+- No tests

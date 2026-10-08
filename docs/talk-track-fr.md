@@ -25,14 +25,15 @@ Lancer le playbook **EM - Intune Patch Remediation** sur l'issue.
 
 > « Je ne vais pas coder, je ne vais pas changer d'outil. Je demande à Cortex de traiter cette vulnérabilité. »
 
-Ouvrir le **Work Plan** et commenter les premières étapes au fil de l'eau :
-- Cortex identifie le poste et la vulnérabilité.
-- Cortex vérifie que le poste est bien géré par Intune.
-- Cortex prépare un résumé : poste, utilisateur, version actuelle, correctif.
+Ouvrir le **Work Plan** : 5 étapes, lisibles sans connaissance technique.
+
+> « Le scénario tient en cinq étapes : identifier, valider, déployer, vérifier, clôturer. »
+
+Étape **1. Identifier le poste et la vulnérabilité** : montrer le tableau dans le War Room (poste, utilisateur, version de l'OS, conformité Intune, CVE, correctif Microsoft).
 
 ## 3. L'humain garde la main (1 min)
 
-Le playbook s'arrête sur **« Approuver le déploiement du correctif via Intune ? »**
+Le playbook s'arrête sur **« 2. Valider le déploiement du correctif ? »**
 
 > « Rien ne part sur le poste d'un collaborateur sans validation. Vous décidez du niveau d'automatisation : aujourd'hui une validation à chaque fois, demain une validation uniquement pour les postes sensibles, et automatique pour le reste. »
 
@@ -54,15 +55,15 @@ Pendant l'attente (environ 2 minutes), montrer les autres postes de la console :
 
 ## 5. La boucle est fermée (1 min)
 
-Revenir sur l'issue dans XSIAM : elle est **clôturée**, avec la note de remédiation : CVE corrigée, version avant / après, poste conforme, durée.
+Revenir sur l'issue dans XSIAM : elle est **clôturée**, avec la note de remédiation : CVE corrigée, groupe Intune utilisé, version avant / après, poste conforme.
 
 > « Pour votre RSSI et pour l'audit : qui a décidé, quand, quel correctif, et la preuve que le poste est corrigé. Tout est dans l'issue. Et le prochain scan de vulnérabilités viendra confirmer. »
 
 ## 6. Et les serveurs ? (1 min, optionnel)
 
-Lancer le même playbook sur une issue de serveur (par exemple `srv-web-01.business.org`).
+Plutôt que de lancer le playbook sur un serveur (l'étape 1 s'arrêterait sur « not managed by Intune »), le dire à l'oral :
 
-> « Un serveur n'est pas géré par Intune. Cortex le détecte et confie la remédiation à l'équipe propriétaire de l'asset. Même processus, même suivi, le bon outil pour chaque type d'asset. »
+> « Un serveur n'est pas géré par Intune : Cortex le détecte dès la première étape. En production, on ajoute simplement une branche qui confie la remédiation à l'équipe propriétaire de l'asset, ou à l'outil adapté (SCCM, Ansible, ticket ITSM). Le bon outil pour chaque type d'asset. »
 
 ## Questions fréquentes
 
