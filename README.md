@@ -122,16 +122,47 @@ Dépendances déjà présentes sur un tenant XSIAM : `Cortex Core - IR` (`core-g
 
 Si l'intégration officielle *Microsoft Graph API* est aussi configurée sur le tenant, les tâches `msgraph-api-request` s'exécuteraient sur les deux instances : n'en garder qu'une active.
 
+### Préparer le tenant avant la démo
+
+**Les issues de vulnérabilité sont souvent déjà fermées.** Sur un tenant où une règle d'automatisation exécute le playbook générique *Posture Issues Entity Enrichment - Generic v3*, chaque issue de vulnérabilité est enrichie puis clôturée automatiquement (note « Enriched and closed »). Or un playbook ne peut être lancé que sur une issue **ouverte** (`setPlaybook` renvoie sinon `reopen_inv_id`).
+
+Avant la démo :
+
+1. Ouvrir l'issue hero et **la rouvrir** : changer son statut en *Under Investigation*. Si `setPlaybook` répond encore `reopen_inv_id`, attendre quelques secondes et relancer.
+2. Ou choisir une issue crédible encore ouverte, par exemple **CVE-2023-42917 vulnerability at BSNS-MAC-EMMA** (WebKit, macOS 14.1.1 → 14.1.2). Le playbook suit alors la branche macOS et le groupe `XSIAM-Remediation-macOS-Update`.
+3. Après une répétition, l'issue est clôturée par le playbook : la rouvrir de la même façon et cliquer **Réinitialiser la démo** dans la console du simulateur.
+
+Paires issue / poste crédibles pour ce scénario (les autres CVE des postes Business Corp sont attribuées au hasard par le simulateur Rapid7 et ne correspondent pas toujours à l'OS) :
+
+| Issue | Plateforme | Groupe de remédiation |
+|---|---|---|
+| CVE-2024-38063 at BSNS-WIN-ALICE / CHARLIE / DAVID | Windows (KB d'août 2024) | XSIAM-Remediation-Windows-Expedite |
+| CVE-2023-42917 at BSNS-MAC-EMMA | macOS | XSIAM-Remediation-macOS-Update |
+| CVE-2023-42917 at BSNS-MOB-FLORA | iOS | XSIAM-Remediation-iOS-Update |
+
 ### Lancer la démo
 
 1. Ouvrir la console du simulateur (`<URL>/console`), cliquer **Réinitialiser la démo**.
-2. Dans XSIAM, ouvrir l'issue **CVE-2024-38063 vulnerability at BSNS-WIN-ALICE** (Vulnerability Issues, filtre sur le groupe `EM-demo-grp-Business-Corp`).
+2. Dans XSIAM, ouvrir l'issue **CVE-2024-38063 vulnerability at BSNS-WIN-ALICE** (Vulnerability Issues, filtre sur le groupe `EM-demo-grp-Business-Corp`), rouverte comme indiqué ci-dessus.
 3. Exécuter le playbook **EM - Intune Patch Remediation** sur l'issue (War Room : `!setPlaybook name="EM - Intune Patch Remediation"`, ou depuis l'onglet Resolution / Work Plan).
 4. Dans le Work Plan, répondre **Oui** à « Approuver le déploiement du correctif via Intune ? ».
 5. Montrer la console Intune : ajout au groupe, check-in, téléchargement, installation, poste conforme (environ 2 min 30 avec la valeur par défaut).
 6. Revenir sur l'issue : clôturée avec la note de remédiation (versions avant / après).
 
 Pour montrer la branche « hors Intune », lancer le même playbook sur une issue d'un serveur (ex. `srv-web-01.business.org`).
+
+### Dépannage
+
+| Symptôme | Cause probable | Action |
+|---|---|---|
+| `setPlaybook` répond `reopen_inv_id` | Issue fermée | La rouvrir (statut *Under Investigation*), patienter quelques secondes, relancer |
+| Test de l'instance « Intune (Demo) » en échec `AADSTS7000215` | Secret différent de `SIM_CLIENT_SECRET` | Aligner le secret de l'instance sur la variable du service Cloud Run |
+| Test de l'instance en échec réseau / 403 | Accès au service Cloud Run non ouvert à XSIAM | Revoir l'accès au service côté GCP |
+| Branche « Analyst action » dès le début | Hostname introuvable (asset et nom d'issue vides) | Vérifier `${alert.asset_ids}` et la sortie de `EMIntuneParseIssue` dans le War Room |
+| Branche « asset hors Intune » sur un poste | Le nom du poste ne correspond à aucun appareil du simulateur | Vérifier le hostname (`BSNS-WIN-ALICE`…) dans la console |
+| Tâches `msgraph-api-request` exécutées deux fois | Intégration officielle Graph API aussi active | Désactiver l'une des deux instances |
+| Console revenue à l'état initial en pleine démo | Cold start Cloud Run | Déployer avec `MIN_INSTANCES=1` |
+| Correctif « non confirmé » (timeout) | `PatchTimeoutSeconds` inférieur à `PATCH_DURATION_SECONDS` + check-in | Augmenter l'entrée du playbook ou réduire `PATCH_DURATION_SECONDS` |
 
 ### Passage en production
 

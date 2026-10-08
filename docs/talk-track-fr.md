@@ -7,7 +7,8 @@ Public : non technique. Message clé : **Cortex décide quoi corriger en premier
 
 - Simulateur déployé avec `--min-instances 1`, console ouverte dans un onglet : `<URL>/console`, bouton **Réinitialiser la démo** cliqué.
 - XSIAM ouvert sur **Vulnerability Issues**, filtré sur le groupe `EM-demo-grp-Business-Corp`.
-- L'issue **CVE-2024-38063 vulnerability at BSNS-WIN-ALICE** est ouverte (rouvrir l'issue si elle a été clôturée lors d'une répétition).
+- L'issue **CVE-2024-38063 vulnerability at BSNS-WIN-ALICE** est **ouverte** : elle est souvent clôturée automatiquement par le playbook d'enrichissement générique du tenant, ou par une répétition. La passer en *Under Investigation* avant la séance (voir README, « Préparer le tenant avant la démo »). Alternative déjà ouverte : CVE-2023-42917 sur BSNS-MAC-EMMA.
+- Pendant la démo, rester sur l'onglet de l'issue et sur la CVE hero : les autres CVE du poste viennent d'un simulateur de scanner et ne sont pas toutes cohérentes avec l'OS.
 - Deux onglets côte à côte : XSIAM à gauche, console Intune à droite.
 
 ## 1. Le constat (1 min)
